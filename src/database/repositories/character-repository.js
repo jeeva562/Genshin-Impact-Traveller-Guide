@@ -29,12 +29,18 @@ export function getCharacters({ vision, weapon_type, rarity, nation, search, sor
  * Get a single character by ID with all related data.
  */
 export function getCharacterById(id) {
-  const character = queryOne('SELECT * FROM characters WHERE id = ?', [id]);
+  if (!id) return null;
+  const cleanId = String(id).trim();
+  const slugUnderscore = cleanId.toLowerCase().replace(/-/g, '_');
+  const slugHyphen = cleanId.toLowerCase().replace(/_/g, '-');
+
+  let character = queryOne('SELECT * FROM characters WHERE id = ? OR id = ? OR id = ? OR LOWER(name) = ?', [cleanId, slugUnderscore, slugHyphen, cleanId.toLowerCase()]);
   if (!character) return null;
+  const charId = character.id;
 
   const talents = queryAll(
     'SELECT * FROM character_talents WHERE character_id = ? ORDER BY sort_order',
-    [id]
+    [charId]
   );
 
   // Get upgrades for each talent
@@ -47,22 +53,22 @@ export function getCharacterById(id) {
 
   const passives = queryAll(
     'SELECT * FROM passive_talents WHERE character_id = ? ORDER BY level',
-    [id]
+    [charId]
   );
 
   const constellations = queryAll(
     'SELECT * FROM constellations WHERE character_id = ? ORDER BY level',
-    [id]
+    [charId]
   );
 
   const ascensionMaterials = queryAll(
     'SELECT * FROM character_ascension_materials WHERE character_id = ? ORDER BY ascension_level',
-    [id]
+    [charId]
   );
 
   const buildPresets = queryAll(
     'SELECT * FROM build_presets WHERE character_id = ? ORDER BY id',
-    [id]
+    [charId]
   );
 
   // Parse JSON fields in build presets
@@ -82,7 +88,7 @@ export function getCharacterById(id) {
     `SELECT tb.* FROM talent_books tb
      JOIN talent_book_characters tbc ON tb.book_type = tbc.book_type
      WHERE tbc.character_id = ?`,
-    [id]
+    [charId]
   );
 
   for (const book of talentBooks) {

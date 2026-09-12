@@ -139,6 +139,7 @@ export const NAV_ITEMS = [
   { label: 'Teams', href: '/teams', icon: 'team' },
   { label: 'World & Map', href: '/world', icon: 'globe' },
   { label: 'Farming', href: '/farming', icon: 'calendar' },
+  { label: 'Tools', href: '/tools', icon: 'tool' },
   { label: 'Planner', href: '/planner', icon: 'chart' },
   { label: 'Guides', href: '/guides', icon: 'book' },
 ];
