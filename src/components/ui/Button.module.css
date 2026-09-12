@@ -1,0 +1,96 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+  border-radius: var(--radius-lg);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-default);
+  white-space: nowrap;
+  user-select: none;
+  height: 40px;
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* --- Variants --- */
+.primary {
+  background: var(--gradient-accent);
+  color: #fff;
+  border-color: transparent;
+}
+.primary:hover:not(:disabled) {
+  box-shadow: var(--shadow-md), 0 0 20px rgba(95, 196, 160, 0.2);
+}
+
+.secondary {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border-primary);
+}
+.secondary:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-accent);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.ghost:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.danger {
+  background: var(--pyro);
+  color: #fff;
+}
+.danger:hover:not(:disabled) {
+  background: var(--pyro-dark);
+}
+
+/* --- Sizes --- */
+.sm {
+  height: 32px;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+  border-radius: var(--radius-md);
+}
+
+.lg {
+  height: 48px;
+  padding: var(--space-3) var(--space-8);
+  font-size: var(--text-md);
+  border-radius: var(--radius-xl);
+}
+
+/* --- Element variants --- */
+.elementAccent {
+  background: var(--element-bg, var(--bg-surface));
+  color: var(--element-color, var(--text-primary));
+  border-color: var(--element-color, var(--border-primary));
+  border-width: 1px;
+}
+.elementAccent:hover:not(:disabled) {
+  background: var(--element-color, var(--bg-hover));
+  color: #fff;
+}
+
+/* --- Icon only --- */
+.iconOnly {
+  width: 40px;
+  padding: 0;
+}
+.iconOnly.sm { width: 32px; }
+.iconOnly.lg { width: 48px; }

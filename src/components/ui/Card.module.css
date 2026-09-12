@@ -1,0 +1,87 @@
+.card {
+  position: relative;
+  background: var(--glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  transition: transform 0.3s var(--ease-bounce),
+    box-shadow 0.3s var(--ease-default),
+    border-color 0.3s var(--ease-default);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-card);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.interactive:hover {
+  border-color: var(--border-accent);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  transform: translateY(-4px) scale(1.01);
+}
+
+.interactive:active {
+  transform: translateY(0);
+}
+
+.elevated {
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-md);
+}
+
+.glass {
+  background: var(--glass-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-color: var(--glass-border);
+}
+
+/* --- Accent stripe --- */
+.accentTop {
+  border-top: 3px solid var(--element-color, var(--anemo));
+}
+
+.accentLeft {
+  border-left: 3px solid var(--element-color, var(--anemo));
+}
+
+/* --- Padding variants --- */
+.padNone>.content {
+  padding: 0;
+}
+
+.padSm>.content {
+  padding: var(--space-3);
+}
+
+.padMd>.content {
+  padding: var(--space-5);
+}
+
+.padLg>.content {
+  padding: var(--space-8);
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  padding: var(--space-5);
+}
+
+/* --- Header/Footer areas --- */
+.header {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.footer {
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--glass-border);
+  background: rgba(17, 20, 36, 0.8);
+}

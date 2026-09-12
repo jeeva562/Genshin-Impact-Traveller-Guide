@@ -1,0 +1,34 @@
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.text { height: 16px; border-radius: var(--radius-sm); }
+.title { height: 24px; width: 60%; border-radius: var(--radius-sm); }
+.avatar { border-radius: var(--radius-full); }
+.card { height: 240px; border-radius: var(--radius-xl); }
+.thumbnail { height: 180px; border-radius: var(--radius-lg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; }
+}
