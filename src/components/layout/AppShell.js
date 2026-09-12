@@ -13,9 +13,6 @@ export default function AppShell({ children }) {
 
   return (
     <>
-      <a href="#main-content" className="skip-link">
-        Skip to main content
-      </a>
       <Header onSearchOpen={openSearch} />
       <main id="main-content" style={{ minHeight: 'calc(100vh - var(--header-height))' }}>
         {children}
