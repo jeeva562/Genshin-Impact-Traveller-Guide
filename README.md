@@ -1,4 +1,4 @@
-# Genshin Impact Traveller Guide ✦ Celestial Edition
+# Genshin Impact Traveller Guide  Celestial Edition
 
 An interactive, high-performance web application designed for Genshin Impact players. Explore complete character rosters, weapon databases, artifact set recommendations, team synergy calculators, and dynamic daily farming schedules.
 
