@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getCharacterById } from '@/database/repositories/character-repository';
+import { getCharacterById, getCharacters } from '@/database/repositories/character-repository';
 import { getWeapons, getArtifactSets } from '@/database/repositories/index';
 import CharacterHeader from '@/components/character/guide/CharacterHeader';
 import CharacterBuildSection from '@/components/character/guide/CharacterBuildSection';

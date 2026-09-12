@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getWeaponById } from '@/database/repositories/index';
+import { getWeaponById, getWeapons } from '@/database/repositories/index';
 import { getWeaponImage, getWeaponFallback } from '@/lib/assets';
 import { RARITY_COLORS } from '@/lib/constants';
 

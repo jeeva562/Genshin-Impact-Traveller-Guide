@@ -1,28 +1,51 @@
-/**
- * Character repository — database queries for character data.
- */
-
 import { queryAll, queryOne } from '../db';
+import dataExport from '../data-export.json';
 
 /**
  * Get all characters with optional filters.
  */
 export function getCharacters({ vision, weapon_type, rarity, nation, search, sort = 'name', order = 'asc' } = {}) {
-  let sql = 'SELECT * FROM characters WHERE 1=1';
-  const params = [];
+  try {
+    let sql = 'SELECT * FROM characters WHERE 1=1';
+    const params = [];
 
-  if (vision) { sql += ' AND vision = ?'; params.push(vision); }
-  if (weapon_type) { sql += ' AND weapon_type = ?'; params.push(weapon_type); }
-  if (rarity) { sql += ' AND rarity = ?'; params.push(Number(rarity)); }
-  if (nation) { sql += ' AND nation = ?'; params.push(nation); }
-  if (search) { sql += ' AND name LIKE ?'; params.push(`%${search}%`); }
+    if (vision) { sql += ' AND vision = ?'; params.push(vision); }
+    if (weapon_type) { sql += ' AND weapon_type = ?'; params.push(weapon_type); }
+    if (rarity) { sql += ' AND rarity = ?'; params.push(Number(rarity)); }
+    if (nation) { sql += ' AND nation = ?'; params.push(nation); }
+    if (search) { sql += ' AND name LIKE ?'; params.push(`%${search}%`); }
 
-  const validSorts = ['name', 'rarity', 'vision', 'nation', 'weapon_type'];
-  const sortCol = validSorts.includes(sort) ? sort : 'name';
-  const sortOrder = order === 'desc' ? 'DESC' : 'ASC';
-  sql += ` ORDER BY ${sortCol} ${sortOrder}`;
+    const validSorts = ['name', 'rarity', 'vision', 'nation', 'weapon_type'];
+    const sortCol = validSorts.includes(sort) ? sort : 'name';
+    const sortOrder = order === 'desc' ? 'DESC' : 'ASC';
+    sql += ` ORDER BY ${sortCol} ${sortOrder}`;
 
-  return queryAll(sql, params);
+    const dbRes = queryAll(sql, params);
+    if (dbRes && dbRes.length > 0) return dbRes;
+  } catch (e) {
+    // Fallback to static JSON below
+  }
+
+  let list = Object.values(dataExport.characters || {});
+  if (vision) list = list.filter((c) => c.vision === vision);
+  if (weapon_type) list = list.filter((c) => c.weapon_type === weapon_type);
+  if (rarity) list = list.filter((c) => Number(c.rarity) === Number(rarity));
+  if (nation) list = list.filter((c) => c.nation === nation);
+  if (search) {
+    const s = search.toLowerCase();
+    list = list.filter((c) => c.name?.toLowerCase().includes(s));
+  }
+
+  list.sort((a, b) => {
+    if (sort === 'rarity') {
+      return order === 'desc' ? (b.rarity || 0) - (a.rarity || 0) : (a.rarity || 0) - (b.rarity || 0);
+    }
+    const valA = a[sort] || a.name || '';
+    const valB = b[sort] || b.name || '';
+    return order === 'desc' ? String(valB).localeCompare(String(valA)) : String(valA).localeCompare(String(valB));
+  });
+
+  return list;
 }
 
 /**
@@ -34,98 +57,106 @@ export function getCharacterById(id) {
   const slugUnderscore = cleanId.toLowerCase().replace(/-/g, '_');
   const slugHyphen = cleanId.toLowerCase().replace(/_/g, '-');
 
-  let character = queryOne('SELECT * FROM characters WHERE id = ? OR id = ? OR id = ? OR LOWER(name) = ?', [cleanId, slugUnderscore, slugHyphen, cleanId.toLowerCase()]);
+  let character = null;
+  let charId = cleanId;
+
+  try {
+    character = queryOne('SELECT * FROM characters WHERE id = ? OR id = ? OR id = ? OR LOWER(name) = ?', [cleanId, slugUnderscore, slugHyphen, cleanId.toLowerCase()]);
+  } catch {
+    /* SQLite query error fallback below */
+  }
+
+  if (!character) {
+    const chars = dataExport.characters || {};
+    character =
+      chars[cleanId] ||
+      chars[slugUnderscore] ||
+      chars[slugHyphen] ||
+      Object.values(chars).find(
+        (c) => c.name?.toLowerCase() === cleanId.toLowerCase() || c.id?.toLowerCase() === slugUnderscore
+      ) ||
+      null;
+  }
+
   if (!character) return null;
-  const charId = character.id;
+  charId = character.id || cleanId;
 
-  const talents = queryAll(
-    'SELECT * FROM character_talents WHERE character_id = ? ORDER BY sort_order',
-    [charId]
-  );
+  let talents = [];
+  let passives = [];
+  let constellations = [];
+  let ascensionMaterials = [];
+  let buildPresets = [];
+  let talentBooks = [];
+  let weapons = [];
+  let artifacts = [];
+  let characterTeams = [];
 
-  // Get upgrades for each talent
-  for (const talent of talents) {
-    talent.upgrades = queryAll(
-      'SELECT name, value FROM talent_upgrades WHERE talent_id = ?',
-      [talent.id]
+  try {
+    talents = queryAll('SELECT * FROM character_talents WHERE character_id = ? ORDER BY sort_order', [charId]);
+    for (const talent of talents) {
+      talent.upgrades = queryAll('SELECT name, value FROM talent_upgrades WHERE talent_id = ?', [talent.id]);
+    }
+    passives = queryAll('SELECT * FROM passive_talents WHERE character_id = ? ORDER BY level', [charId]);
+    constellations = queryAll('SELECT * FROM constellations WHERE character_id = ? ORDER BY level', [charId]);
+    ascensionMaterials = queryAll('SELECT * FROM character_ascension_materials WHERE character_id = ? ORDER BY ascension_level', [charId]);
+    buildPresets = queryAll('SELECT * FROM build_presets WHERE character_id = ? ORDER BY id', [charId]);
+
+    for (const build of buildPresets) {
+      try {
+        build.weapon_ids = JSON.parse(build.weapon_ids || '[]');
+        build.artifact_set_ids = JSON.parse(build.artifact_set_ids || '[]');
+        build.main_stats = JSON.parse(build.main_stats || '{}');
+        build.sub_stats = JSON.parse(build.sub_stats || '[]');
+        build.stat_targets = JSON.parse(build.stat_targets || '{}');
+        build.talent_priority = JSON.parse(build.talent_priority || '[]');
+      } catch { /* keep raw */ }
+    }
+
+    talentBooks = queryAll(
+      `SELECT tb.* FROM talent_books tb
+       JOIN talent_book_characters tbc ON tb.book_type = tbc.book_type
+       WHERE tbc.character_id = ?`,
+      [charId]
     );
+
+    for (const book of talentBooks) {
+      try { book.availability = JSON.parse(book.availability || '[]'); } catch { book.availability = []; }
+    }
+
+    const weaponIds = [...new Set(buildPresets.flatMap((b) => b.weapon_ids || []))];
+    weapons = weaponIds.length > 0
+      ? queryAll(`SELECT * FROM weapons WHERE id IN (${weaponIds.map(() => '?').join(',')})`, weaponIds)
+      : [];
+
+    const artifactIds = [...new Set(buildPresets.flatMap((b) => b.artifact_set_ids || []))];
+    artifacts = artifactIds.length > 0
+      ? queryAll(`SELECT * FROM artifact_sets WHERE id IN (${artifactIds.map(() => '?').join(',')})`, artifactIds)
+      : [];
+
+    const teams = queryAll('SELECT * FROM team_templates');
+    characterTeams = teams.filter((t) => {
+      try {
+        const cList = JSON.parse(t.characters || '[]');
+        return cList.some((c) => c.characterId === charId);
+      } catch { return false; }
+    }).map((t) => {
+      try {
+        t.characters = JSON.parse(t.characters || '[]');
+        t.reactions = JSON.parse(t.reactions || '[]');
+        t.rotation = JSON.parse(t.rotation || '[]');
+        t.strengths = JSON.parse(t.strengths || '[]');
+        t.weaknesses = JSON.parse(t.weaknesses || '[]');
+      } catch { /* keep raw */ }
+      return t;
+    });
+  } catch {
+    // If SQLite fails, use arrays already attached to character or fallbacks
+    talents = character.talents || [];
+    passives = character.passives || [];
+    constellations = character.constellations || [];
+    ascensionMaterials = character.ascensionMaterials || [];
   }
 
-  const passives = queryAll(
-    'SELECT * FROM passive_talents WHERE character_id = ? ORDER BY level',
-    [charId]
-  );
-
-  const constellations = queryAll(
-    'SELECT * FROM constellations WHERE character_id = ? ORDER BY level',
-    [charId]
-  );
-
-  const ascensionMaterials = queryAll(
-    'SELECT * FROM character_ascension_materials WHERE character_id = ? ORDER BY ascension_level',
-    [charId]
-  );
-
-  const buildPresets = queryAll(
-    'SELECT * FROM build_presets WHERE character_id = ? ORDER BY id',
-    [charId]
-  );
-
-  // Parse JSON fields in build presets
-  for (const build of buildPresets) {
-    try {
-      build.weapon_ids = JSON.parse(build.weapon_ids || '[]');
-      build.artifact_set_ids = JSON.parse(build.artifact_set_ids || '[]');
-      build.main_stats = JSON.parse(build.main_stats || '{}');
-      build.sub_stats = JSON.parse(build.sub_stats || '[]');
-      build.stat_targets = JSON.parse(build.stat_targets || '{}');
-      build.talent_priority = JSON.parse(build.talent_priority || '[]');
-    } catch { /* keep raw strings if parse fails */ }
-  }
-
-  // Get talent book info
-  const talentBooks = queryAll(
-    `SELECT tb.* FROM talent_books tb
-     JOIN talent_book_characters tbc ON tb.book_type = tbc.book_type
-     WHERE tbc.character_id = ?`,
-    [charId]
-  );
-
-  for (const book of talentBooks) {
-    try { book.availability = JSON.parse(book.availability || '[]'); } catch { book.availability = []; }
-  }
-
-  // Get weapon details for build presets
-  const weaponIds = [...new Set(buildPresets.flatMap(b => b.weapon_ids || []))];
-  const weapons = weaponIds.length > 0
-    ? queryAll(`SELECT * FROM weapons WHERE id IN (${weaponIds.map(() => '?').join(',')})`, weaponIds)
-    : [];
-
-  // Get artifact details for build presets
-  const artifactIds = [...new Set(buildPresets.flatMap(b => b.artifact_set_ids || []))];
-  const artifacts = artifactIds.length > 0
-    ? queryAll(`SELECT * FROM artifact_sets WHERE id IN (${artifactIds.map(() => '?').join(',')})`, artifactIds)
-    : [];
-
-  // Find teams that include this character
-  const teams = queryAll('SELECT * FROM team_templates');
-  let characterTeams = teams.filter(t => {
-    try {
-      const chars = JSON.parse(t.characters || '[]');
-      return chars.some(c => c.characterId === id);
-    } catch { return false; }
-  }).map(t => {
-    try {
-      t.characters = JSON.parse(t.characters || '[]');
-      t.reactions = JSON.parse(t.reactions || '[]');
-      t.rotation = JSON.parse(t.rotation || '[]');
-      t.strengths = JSON.parse(t.strengths || '[]');
-      t.weaknesses = JSON.parse(t.weaknesses || '[]');
-    } catch { /* keep raw */ }
-    return t;
-  });
-
-  // If no static template exists for this character, generate smart meta team compositions
   if (characterTeams.length === 0) {
     characterTeams = generateDynamicTeamsForCharacter(character);
   }

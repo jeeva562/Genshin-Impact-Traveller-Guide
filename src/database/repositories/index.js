@@ -1,31 +1,82 @@
 import { queryAll, queryOne } from '../db';
+import dataExport from '../data-export.json';
 
 export function getWeapons({ type, rarity, search, sort = 'name', order = 'asc' } = {}) {
-  let sql = 'SELECT * FROM weapons WHERE 1=1';
-  const params = [];
-  if (type) { sql += ' AND type = ?'; params.push(type); }
-  if (rarity) { sql += ' AND rarity = ?'; params.push(Number(rarity)); }
-  if (search) { sql += ' AND name LIKE ?'; params.push(`%${search}%`); }
-  const validSorts = ['name', 'rarity', 'type', 'base_attack'];
-  const sortCol = validSorts.includes(sort) ? sort : 'name';
-  sql += ` ORDER BY ${sortCol} ${order === 'desc' ? 'DESC' : 'ASC'}`;
-  return queryAll(sql, params);
+  try {
+    let sql = 'SELECT * FROM weapons WHERE 1=1';
+    const params = [];
+    if (type) { sql += ' AND type = ?'; params.push(type); }
+    if (rarity) { sql += ' AND rarity = ?'; params.push(Number(rarity)); }
+    if (search) { sql += ' AND name LIKE ?'; params.push(`%${search}%`); }
+    const validSorts = ['name', 'rarity', 'type', 'base_attack'];
+    const sortCol = validSorts.includes(sort) ? sort : 'name';
+    sql += ` ORDER BY ${sortCol} ${order === 'desc' ? 'DESC' : 'ASC'}`;
+    const dbRes = queryAll(sql, params);
+    if (dbRes && dbRes.length > 0) return dbRes;
+  } catch (e) {
+    /* Fallback below */
+  }
+
+  let list = Object.values(dataExport.weapons || {});
+  if (type) list = list.filter((w) => w.type === type);
+  if (rarity) list = list.filter((w) => Number(w.rarity) === Number(rarity));
+  if (search) {
+    const s = search.toLowerCase();
+    list = list.filter((w) => w.name?.toLowerCase().includes(s));
+  }
+  list.sort((a, b) => {
+    if (sort === 'rarity') return order === 'desc' ? (b.rarity || 0) - (a.rarity || 0) : (a.rarity || 0) - (b.rarity || 0);
+    if (sort === 'base_attack') return order === 'desc' ? (b.base_attack || 0) - (a.base_attack || 0) : (a.base_attack || 0) - (b.base_attack || 0);
+    return order === 'desc' ? String(b.name || '').localeCompare(String(a.name || '')) : String(a.name || '').localeCompare(String(b.name || ''));
+  });
+  return list;
 }
 
 export function getWeaponById(id) {
-  return queryOne('SELECT * FROM weapons WHERE id = ?', [id]);
+  if (!id) return null;
+  const cleanId = String(id).trim();
+  try {
+    const w = queryOne('SELECT * FROM weapons WHERE id = ? OR LOWER(name) = ?', [cleanId, cleanId.toLowerCase()]);
+    if (w) return w;
+  } catch (e) {
+    /* Fallback */
+  }
+  const weaps = dataExport.weapons || {};
+  return weaps[cleanId] || Object.values(weaps).find((w) => w.name?.toLowerCase() === cleanId.toLowerCase()) || null;
 }
 
 export function getArtifactSets({ search, sort = 'name' } = {}) {
-  let sql = 'SELECT * FROM artifact_sets WHERE 1=1';
-  const params = [];
-  if (search) { sql += ' AND name LIKE ?'; params.push(`%${search}%`); }
-  sql += ` ORDER BY ${sort === 'max_rarity' ? 'max_rarity DESC' : 'name ASC'}`;
-  return queryAll(sql, params);
+  try {
+    let sql = 'SELECT * FROM artifact_sets WHERE 1=1';
+    const params = [];
+    if (search) { sql += ' AND name LIKE ?'; params.push(`%${search}%`); }
+    sql += ` ORDER BY ${sort === 'max_rarity' ? 'max_rarity DESC' : 'name ASC'}`;
+    const dbRes = queryAll(sql, params);
+    if (dbRes && dbRes.length > 0) return dbRes;
+  } catch (e) {
+    /* Fallback */
+  }
+
+  let list = Object.values(dataExport.artifacts || {});
+  if (search) {
+    const s = search.toLowerCase();
+    list = list.filter((a) => a.name?.toLowerCase().includes(s));
+  }
+  list.sort((a, b) => (sort === 'max_rarity' ? (b.max_rarity || 0) - (a.max_rarity || 0) : String(a.name || '').localeCompare(String(b.name || ''))));
+  return list;
 }
 
 export function getArtifactSetById(id) {
-  return queryOne('SELECT * FROM artifact_sets WHERE id = ?', [id]);
+  if (!id) return null;
+  const cleanId = String(id).trim();
+  try {
+    const a = queryOne('SELECT * FROM artifact_sets WHERE id = ? OR LOWER(name) = ?', [cleanId, cleanId.toLowerCase()]);
+    if (a) return a;
+  } catch (e) {
+    /* Fallback */
+  }
+  const arts = dataExport.artifacts || {};
+  return arts[cleanId] || Object.values(arts).find((a) => a.name?.toLowerCase() === cleanId.toLowerCase()) || null;
 }
 
 export function getTeamTemplates() {

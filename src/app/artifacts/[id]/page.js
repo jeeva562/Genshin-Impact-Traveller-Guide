@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getArtifactSetById } from '@/database/repositories/index';
+import { getArtifactSetById, getArtifactSets } from '@/database/repositories/index';
 import { getArtifactImage, getArtifactFallback } from '@/lib/assets';
 
 export async function generateMetadata({ params }) {
