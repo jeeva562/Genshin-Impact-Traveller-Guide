@@ -52,7 +52,7 @@ export default function Header({ onSearchOpen }) {
           </Link>
 
           <nav className={styles.nav} aria-label="Main navigation">
-            {NAV_ITEMS.slice(0, 6).map((item) => (
+            {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
